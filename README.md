@@ -250,7 +250,7 @@ Much of the complexity in a multi-chain governance system lies in cross-chain me
 
 The proposal flow is illustrated below. The voting action is included for completeness, although it's not part of this spec.
 
-Notice how there are only two messages that go across the bridge: `createProposal` and `queueProposal`. The messages have O(1) size, and so overhead remains constant no matter how large the proposal.
+Notice how there are only three messages that go across the bridge: `createProposal`, `queueProposal`, and `addVotes`. The messages have O(1) size, and so overhead remains constant no matter how large the proposal.
 
 ![](./assets/GovernanceFlow.png)
 
