@@ -34,6 +34,17 @@ struct ProposalInfo {
 }
 ```
 
+**ProposalState**
+
+```solidity
+enum ProposalState {
+    Active,
+    Ended,
+    Defeated,
+    Succeeded
+}
+```
+
 ## VoteLocker
 
 The VoteLocker contract allows users to deposit tokens for voting power. The deposit is locked for a duration specified by the user.
@@ -311,6 +322,40 @@ SHOULD only be callable by an authorized aggregator (such as a GovernorBranch or
       type: bytes32
 ```
 
+**gracePeriod**
+
+The grace period is the amount of time after a proposal ends during which aggregators can submit their votes.
+
+```yaml
+- name: gracePeriod
+  type: function
+  stateMutability: view
+  outputs:
+    - name: duration
+      type: uint256
+```
+
+**proposalStatus**
+
+Returns the status of a proposal:
+
+- Active: the proposal has not yet ended
+- Ended: the proposal has ended but the votes are not yet in
+- Succeeded: voting has completed and the proposal has passed
+- Defeated: voting has completed and the proposal did not pass
+
+```yaml
+- name: proposalStatus
+  type: function
+  stateMutability: view
+  inputs:
+    - name: proposalHash
+      type: bytes32
+  outputs:
+    - name: status
+      type: ProposalState
+```
+
 ### Events
 
 **VotesAdded**
@@ -339,6 +384,12 @@ Emitted when the final vote count comes in for a GovernorBranch
 
 Prevents double voting across chains.
 
+*notes* the act of bridging passed proposals can be done as-needed for GovernorBranches that need to execute transactions.
+
+## Flow Diagram
+
+![](./assets/GovernanceVoting.png)
+
 # Backwards Compatibility
 
 This implementation takes inspiration from Curve Vote Escrow contracts, and from the OpenZeppelin ERC20Vote extensions. However, it is not compatible with those specifications.
@@ -350,6 +401,8 @@ TBD
 # Reference Implementation
 
 TBD
+
+*Implementation Note: I'm guessing we can just store an array of (balance, timestamp) tuples per user and binary search them to find the balance. Deposits push onto array, withdrawal clears the array*
 
 # Security Considerations
 

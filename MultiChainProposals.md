@@ -52,7 +52,7 @@ SHOULD trigger a `createProposal` call in the associated `GovernorRoot` contract
   inputs: 
     - name: calls
       type: Call[]
-    - name: data
+    - name: message
       type: bytes
   outputs:
     - name: branchNonce
@@ -122,7 +122,7 @@ MUST be emitted when a GovernorBranch requests a new proposal.
       type: uint
     - name: calls
       type: Call[]
-    - name: data
+    - name: message
       type: bytes
 ```
 
@@ -153,6 +153,8 @@ MUST be emitted when a GovernorBranch executes a proposal
 ```
 
 ## GovernorRoot
+
+The GovernorRoot coordinates the final proposal details, including the start time, end time and root nonce. The process by which a proposal is approved is left unspecified, because it depends on how proposals are passed.
 
 ### Methods
 
@@ -197,25 +199,6 @@ The `proposalHash` output value is a keccak hash of the ABI-encoded:
       type: bytes32
 ```
 
-**queueProposal**
-
-MUST emit the `ProposalQueued` event.
-
-MUST revert if the proposal was previously queued.
-
-SHOULD only queue if the proposal has passed some criteria (such as voting).
-
-SHOULD call `queueProposal` on all `GovernorRoot` contracts, whether directly or indirectly through a bridge or proxy.
-
-```yaml
-- name: queueProposal
-  type: function
-  stateMutability: nonpayable
-  inputs: 
-    - name: rootNonce
-      type: uint
-```
-
 ### Events
 
 **ProposalCreated**
@@ -245,15 +228,11 @@ MUST be emitted when a GovernorRoot creates a new proposal.
 
 # Rationale
 
-Much of the complexity in a multi-chain governance system lies in cross-chain messages. Sending messages across chains can be expensive, time consuming, and asynchronous. One of the major goals of this specification is to keep *as much data off-chain as possible*. This is why users provide the full transaction data when executing; so that they can prove the contents of a proposal instead of retreiving it.
+Much of the complexity in a multi-chain governance system lies in cross-chain messages. Sending messages across chains can be expensive, time consuming, and asynchronous. One of the major goals of this specification is to keep *as much data off-chain as possible*. This is why users provide the full proposal data when executing; so that they can prove the contents of a proposal instead of needing to retrieve it.
 
-## Bridge Minimization
+## Flow Diagram
 
-The proposal flow is illustrated below. The voting action is included for completeness, although it's not part of this spec.
-
-Notice how there are only two messages that go across the bridge: `createProposal` and `queueProposal`. The messages have O(1) size, and so overhead remains constant no matter how large the proposal.
-
-![](./assets/GovernanceFlow.png)
+![](./assets/GovernanceProposal.png)
 
 # Backwards Compatibility
 
