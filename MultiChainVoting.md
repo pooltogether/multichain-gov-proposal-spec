@@ -324,7 +324,7 @@ SHOULD only be callable by an authorized aggregator (such as a GovernorBranch or
 
 **gracePeriod**
 
-The grace period is the amount of time after a proposal ends during which aggregators can submit their votes.
+The grace period is the amount of time after a proposal ends during which aggregators can add their votes.
 
 ```yaml
 - name: gracePeriod
