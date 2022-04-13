@@ -121,9 +121,9 @@ MUST emit the `Deposited` event.
 
 Retrieves a users voting power at `timestamp`.
 
-Conceptually, the voting power of a user should be the smallest balance that they held between `timestamp - range` and `timestamp + range`. This ensures that any movement of tokens is ignored; only tokens that have been locked for the entire duration are eligible.  Since this API only allows locked deposits to increase, the smallest balance will always be at `timestamp - range`.
+Conceptually, the voting power of a user should be the smallest balance that they held between `timestamp - range` and `timestamp`. This ensures that any movement of tokens is ignored; only tokens that have been locked for the entire duration are eligible.  Since this API only allows locked deposits to increase, the smallest balance will always be at `timestamp - range`.
 
-The users `unlock time` must be greater than or equal to `timestamp + range`. Note that it's possible for a user to extend their unlock time in order to vote on a proposal.
+The users `unlock time` must be greater than or equal to `timestamp`. Note that it's possible for a user to extend their unlock time in order to vote on a proposal.
 
 ```yaml
 - name: pastVotes
@@ -170,7 +170,7 @@ Retrieves a users current balance of voting tokens.
 
 **range**
 
-Returns the range of time in seconds that users must hold tokens around a given timestamp. When determining voting power for a timestamp, this contract will look at the range `timestamp - range` to `timestamp + range`.
+Returns the range of time in seconds that users must hold tokens around a given timestamp. When determining voting power for a timestamp, this contract will look at the range `timestamp - range` to `timestamp`.
 
 **withdraw**
 
