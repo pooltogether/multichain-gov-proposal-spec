@@ -2,21 +2,35 @@
 
 # Abstract
 
-This specification is an extension to [Multi-Chain Governance Proposals](./MultiChainProposals.md) that affords the ability to vote using standard ERC20 tokens. This specification mitigates security risks arising from clock drift between chains.
+This specification is an extension to [Multi-Chain Governance Proposals](./MultiChainProposals.md) that affords the ability to vote using standard ERC20 tokens. This specification mitigates security risks arising from clock differences between chains.
 
 # Motivation
 
 Many protocols need to govern smart contracts across Ethereum, Ethereum L2s, and EVM-compatible sidechains. This specification aims to standardize a multi-chain voting specification so that DAOs can leverage common infrastructure.
 
-Typically protocols will bridge their token from Ethereum to other L2s and sidechains using whitelabel ERC20 bridges. This means that the token on the L2 or sidechain will be a plain ERC20. To add voting capabilities to the token it needs to be wrapped in a contract.
+Typically protocols will bridge their token from Ethereum to other L2s and sidechains using whitelabel ERC20 bridges. This means that the token on the L2 or sidechain will be a plain ERC20. To add voting capabilities to the token it needs to be wrapped in a contract. To measure historic voting power vote escrow contracts nearly always use the block number or the timestamp as the clock reference.
 
-This spec mitigates a problem with cross-chain state: clock drift.  L2s and sidechains will not always share the exact same timestamp, so it's possible for a user to bridge their tokens and have their token balance reflected on two chains with the same timestamp. The behaviour defined in this spec mitigates that problem.
+Ethereum block numbers cannot be used, because they are not universal. Sidechains such as Polygon do not have access to the current Ethereum block number.
+
+Timestamps are much more universal, but clock times across L2s and sidechains are not consistent. This could be a problem, because if we measure a users vote at a certain timestamp it's possible for them to transfer their tokens and record a balance on two chains *at the same timestamp*.
+
+<img src="./assets/Timestamps.png" alt="drawing" width="30%"/>
+
+For a governance system it's a significant problem if users are able to double-vote.
 
 # Specification
 
 The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “MAY”, and “OPTIONAL” in this document are to be interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
-This specification introduces the EpochVoter contract, and adds additional features to the GovernorBranch and the GovernorRoot contracts.
+The EpochVoter contract is a tokenized wrapper for ERC20 tokens. The contract adds the ability for users to delegate a portion of their balance to others, and records the historic voting power held by a user.  A users voting power is their undelegated balance plus any balances that were delegated to them.
+
+The historic voting power of a user is divided into *epochs*. An epoch is a long enough span of time such that the epochs *must overlap between chains*.
+
+<img src="./assets/Epochs.png" alt="drawing" width="60%"/>
+
+When a user transfers EpochVoter tokens, the contract will record the *minimum balance held by the user during the epoch*. This ensures that users cannot double-vote: the voting power for an epoch excludes tokens that have moved.
+
+Below is the specification for the EpochVoter contract, and extensions to the GovernorBranch and the GovernorRoot contracts.
 
 ## Definitions
 
@@ -51,7 +65,7 @@ enum ProposalState {
 
 ## EpochVoter
 
-The EpochVoter contract tracks users voting power during epochs. An epoch is range of time; the current epoch can be calculated by taking `current time % epoch length`. The length of an epoch should enough to safely cover the possible clock drift between sidechains and L2s.  For example, if two L2s have seen 15 minutes of drift then the epoch length could be two hours in order to safely cover the maximum possible drift.
+The EpochVoter contract tracks users voting power during epochs. An epoch is range of time; the current epoch can be calculated by taking `current time % epoch length`. The length of an epoch should enough to safely cover the possible clock differences between sidechains and L2s.  For example, if two L2s have seen 15 minutes of difference then the epoch length could be two hours in order to safely cover the maximum possible difference.
 
 A user's voting power is the *minimum* balance they had delegated to them during an epoch. This prevents double-voting, because this effectively excludes any sending or receiving of tokens during an epoch.
 
@@ -344,4 +358,4 @@ TBD
 
 # Security Considerations
 
-This specification requires users to hold a minimum amount of tokens for a time range. This time range should be configured to exceed the expected maximum clock drift between chains.
+This specification requires users to hold a minimum amount of tokens for a time range. This time range should be configured to exceed the expected maximum clock difference between chains.
