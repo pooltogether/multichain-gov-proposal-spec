@@ -1,4 +1,4 @@
-# Multi-Chain Governance Voting
+# Multi-Chain Governance Voting by Epoch
 
 # Abstract
 
@@ -10,13 +10,13 @@ Many protocols need to govern smart contracts across Ethereum, Ethereum L2s, and
 
 Typically protocols will bridge their token from Ethereum to other L2s and sidechains using whitelabel ERC20 bridges. This means that the token on the L2 or sidechain will be a plain ERC20. To add voting capabilities to the token it needs to be wrapped in a contract.
 
-The locking behaviour defined in this spec mitigates a problem with cross-chain state: clock drift.  L2s and sidechains will not always share the exact same timestamp, so it's possible for a user to bridge their tokens and have their token balance reflected on two chains with the same timestamp. The locking behaviour defined in this spec mitigates that problem.
+This spec mitigates a problem with cross-chain state: clock drift.  L2s and sidechains will not always share the exact same timestamp, so it's possible for a user to bridge their tokens and have their token balance reflected on two chains with the same timestamp. The behaviour defined in this spec mitigates that problem.
 
 # Specification
 
 The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “MAY”, and “OPTIONAL” in this document are to be interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
-This specification introduces the VoteLocker contract, and adds additional features to the GovernorBranch and the GovernorRoot contracts.
+This specification introduces the EpochVoter contract, and adds additional features to the GovernorBranch and the GovernorRoot contracts.
 
 ## Definitions
 
@@ -25,12 +25,11 @@ This specification introduces the VoteLocker contract, and adds additional featu
 ```solidity
 struct ProposalInfo {
     uint rootNonce;
-    uint startTime;
-    uint endTime;
     uint branchChainId;
     address branchAddress;
     uint branchNonce;
     bytes32 callHash;
+    bytes data;
 }
 ```
 
@@ -38,95 +37,34 @@ struct ProposalInfo {
 
 ```solidity
 enum ProposalState {
+    Pending,
     Active,
+    Cancelled,
     Ended,
     Defeated,
-    Succeeded
+    Succeeded,
+    Queued,
+    Expired,
+    Executed
 }
 ```
 
-## VoteLocker
+## EpochVoter
 
-The VoteLocker contract allows users to deposit tokens for voting power. The deposit is locked for a duration specified by the user.
+The EpochVoter contract tracks users voting power during epochs. An epoch is range of time; the current epoch can be calculated by taking `current time % epoch length`. The length of an epoch should enough to safely cover the possible clock drift between sidechains and L2s.  For example, if two L2s have seen 15 minutes of drift then the epoch length could be two hours in order to safely cover the maximum possible drift.
+
+A user's voting power is the *minimum* balance they had delegated to them during an epoch. This prevents double-voting, because this effectively excludes any sending or receiving of tokens during an epoch.
 
 ### Methods
 
-**token**
+**votesAtTime**
 
-Returns the address of the ERC20 token that users deposit.
+Returns the amount of voting power held by a user during the epoch that occurred at `timestamp`.
 
-```yaml
-- name: token
-  type: function
-  stateMutability: view
-  outputs:
-    - name: token
-      type: address
-```
-
-**lockVotes**
-
-Allows a user to lock their voting tokens for a duration of time. Transfers `amount` of tokens from the `msg.sender` into the VoteLocker. Increases `msg.senders` balance.
-
-MUST emit the `LockedVotes` event.
-
-MUST revert if the user already has votes locked.
+A users voting power is balance of tokens have been delegated to them. The voting power of a user should be the smallest balance that they held during the epoch. This ensures that any movement of tokens is ignored; only tokens that are held for the entire epoch are eligible.
 
 ```yaml
-- name: lockVotes
-  type: function
-  stateMutability: nonpayable
-  inputs: 
-    - name: amount
-      type: uint256
-    - name: unlockTime
-      type: uint256
-```
-
-**increaseUnlockTime**
-
-Increases the unlock time for a user.
-
-MUST emit the `IncreasedUnlockTime` event.
-
-```yaml
-- name: increaseUnlockTime
-  type: function
-  stateMutability: nonpayable
-  inputs: 
-    - name: unlockTime
-      type: uint256
-```
-
-**depositTo**
-
-Deposits tokens for a user. Transfers tokens into the contract and increases the `to` users balance.
-
-MUST revert if the `to` address does not have votes locked.
-
-MUST emit the `Deposited` event.
-
-```yaml
-- name: depositTo
-  type: function
-  stateMutability: nonpayable
-  inputs: 
-    - name: to
-      type: address
-    - name: amount
-      type: uint256
-```
-
-**pastVotes**
-
-Retrieves a users voting power at `timestamp`.
-
-Conceptually, the voting power of a user should be the smallest balance that they held between `timestamp - range` and `timestamp`. This ensures that any movement of tokens is ignored; only tokens that have been locked for the entire duration are eligible.  Since this API only allows locked deposits to increase, the smallest balance will always be at `timestamp - range`.
-
-The users `unlock time` must be greater than or equal to `timestamp`. Note that it's possible for a user to extend their unlock time in order to vote on a proposal.
-
-```yaml
-- name: pastVotes
+- name: votesAtTime
   type: function
   stateMutability: view
   inputs: 
@@ -134,30 +72,64 @@ The users `unlock time` must be greater than or equal to `timestamp`. Note that 
       type: uint256
 ```
 
-**pastBalanceOf**
+**votesAtEpoch**
 
-Retrieves a users balance at the given `timestamp`.
+Returns the amount of voting power held by a user during the given `epoch`.
+
+A users voting power is their balance plus the tokens that have been delegated to them. The voting power of a user should be the smallest balance that they held during the epoch. This ensures that any movement of tokens is ignored; only tokens that are held for the entire epoch are eligible.
 
 ```yaml
-- name: pastBalanceOf
+- name: votesAtEpoch
   type: function
   stateMutability: view
   inputs: 
-    - name: account
-      type: address
-    - name: timestamp
+    - name: epoch
       type: uint256
   outputs:
-    - name: balance
+    - name: votes
       type: uint256
 ```
 
-**balanceOf**
+**delegate**
 
-Retrieves a users current balance of voting tokens.
+Delegates a portion of a users balance to another user. This will decrease their token balance and increase their delegated balance.
 
 ```yaml
-- name: balanceOf
+- name: delegate
+  type: function
+  stateMutability: view
+  inputs: 
+    - name: delegate
+      type: address
+    - name: amount
+      type: uint256
+```
+
+**undelegate**
+
+Undelegates balance from a delegate back to the user. This will decrease their delegated balance and increase their token balance.
+
+```yaml
+- name: undelegate
+  type: function
+  stateMutability: view
+  inputs: 
+    - name: delegate
+      type: address
+    - name: amount
+      type: uint256
+```
+
+**delegateBalanceOf**
+
+
+
+**delegatedBalanceOf**
+
+Returns the total number of tokens a user has delegated to others.
+
+```yaml
+- name: delegatedBalanceOf
   type: function
   stateMutability: view
   inputs: 
@@ -168,79 +140,39 @@ Retrieves a users current balance of voting tokens.
       type: uint256
 ```
 
-**range**
+**epochLength**
 
-Returns the range of time in seconds that users must hold tokens around a given timestamp. When determining voting power for a timestamp, this contract will look at the range `timestamp - range` to `timestamp`.
-
-**withdraw**
-
-Withdraws a users tokens and rescinds past and current voting power. The user should complete any voting before withdrawing.
-
-MUST revert if the current time is greater than or equal to the users `unlock time`.
-
-MUST emit the `Withdrawn` event.
-
-### Events
-
-**LockedVotes**
-
-Emitted when a user locks their tokens in to vote.
+Return the length of the epoch in seconds.
 
 ```yaml
-- name: LockedVotes
-  type: event
-  inputs:
-    - name: account
-      type: address
-    - name: amount
-      type: uint256
-    - name: unlockTime
+- name: epochLength
+  type: function
+  stateMutability: view
+  output: 
+    - name: epochLength
       type: uint256
 ```
 
-**IncreasedUnlockTime**
+**epochToTimestamp**
 
-Emitted when a user increases their lock time
+Converts a given epoch to a timestamp
 
 ```yaml
-- name: IncreasedUnlockTime
-  type: event
-  inputs:
-    - name: account
-      type: address
-    - name: unlockTime
+- name: epochToTimestamp
+  type: function
+  stateMutability: view
+  inputs: 
+    - name: epochLength
       type: uint256
 ```
 
-**Deposited**
+**timestampToEpoch**
 
-Emitted when an account is deposited into.
+Calculates the epoch given a timestamp
 
-```yaml
-- name: Deposited
-  type: event
-  inputs:
-    - name: from
-      type: address
-    - name: to
-      type: address
-    - name: amount
-      type: uint256
-```
+**epochStartTime**
 
-**Withdrawn**
-
-Emitted when a user withdraws their tokens.
-
-```yaml
-- name: Withdrawn
-  type: event
-  inputs:
-    - name: account
-      type: address
-    - name: amount
-      type: uint256
-```
+Returns the time at which epochs start.
 
 ## GovernorBranch
 
@@ -356,6 +288,16 @@ Returns the status of a proposal:
       type: ProposalState
 ```
 
+**createProposal**
+
+The multi-chain voting extension to the original [GovernorRoot](./MultiChainProposals.md) records additional epoch-specific information.
+
+The `epochStart` is the most recent epoch that has passed. The epoch must have ended before the current time.
+
+The `endTime` is the timestamp before which votes must be submitted to the GovernorBranch contracts.
+
+The above MUST be abi-encoded as (`epochStart`, `endTime`) and emitted as the implementation-specific `data` parameter in the event `ProposalCreated`.
+
 ### Events
 
 **VotesAdded**
@@ -384,15 +326,13 @@ Emitted when the final vote count comes in for a GovernorBranch
 
 Prevents double voting across chains.
 
-*notes* the act of bridging passed proposals can be done as-needed for GovernorBranches that need to execute transactions.
-
 ## Flow Diagram
 
 ![](./assets/GovernanceVoting.png)
 
 # Backwards Compatibility
 
-This implementation takes inspiration from Curve Vote Escrow contracts, and from the OpenZeppelin ERC20Vote extensions. However, it is not compatible with those specifications.
+None
 
 # Test Cases
 
@@ -401,8 +341,6 @@ TBD
 # Reference Implementation
 
 TBD
-
-*Implementation Note: I'm guessing we can just store an array of (balance, timestamp) tuples per user and binary search them to find the balance. Deposits push onto array, withdrawal clears the array*
 
 # Security Considerations
 

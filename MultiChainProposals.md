@@ -92,10 +92,6 @@ MUST NOT execute a proposal that has not been queued.
   inputs:
     - name: rootNonce
       type: uint
-    - name: startTime
-      type: uint
-    - name: endTime
-      type: uint
     - name: branchChainId
       type: uint
     - name: branchAddress
@@ -104,6 +100,8 @@ MUST NOT execute a proposal that has not been queued.
       type: uint
     - name: calls
       type: Call[]
+    - name: data
+      type: bytes
 ```
 
 ### Events
@@ -164,20 +162,19 @@ MUST emit the `ProposalCreated` event.
 
 SHOULD only be callable by authorized contracts (GovernorBranches, or bridge contracts).
 
-The `rootNonce` must be incremented every time `createProposal` is called. The nonce is specific to the GovernorRoot.
+The `rootNonce` must be 
 
 The `callsHash` parameter is a keccak hash of the ABI-encoded `Call[]` array.
 
-The `startTime` and `endTime` timestamps are determined by the GovernorRoot. They represent the timespan in which voting may occur. Calculating a user's vote is outside the scope of this proposal.
+The `data` value can be any additional implementation-specific data.
 
 The `proposalHash` output value is a keccak hash of the ABI-encoded:
-- `rootNonce`
-- `startTime`
-- `endTime`
-- `branchChainId`
-- `branchAddress`
-- `branchNonce`
-- `callsHash`
+- `rootNonce`: incremented every time `createProposal` is called. The nonce is specific to the GovernorRoot.
+- `branchChainId`: the GovernorBranch chainId that was passed
+- `branchAddress`: the GovernorBranch address that was passed
+- `branchNonce`: the GovernorBranch nonce that was passed
+- `callsHash`: The hash of call data
+- `data`: Additional data that is implementation-specific
 
 ```yaml
 - name: createProposal
@@ -197,6 +194,8 @@ The `proposalHash` output value is a keccak hash of the ABI-encoded:
       type: uint
     - name: proposalHash
       type: bytes32
+    - name: data
+      type: bytes
 ```
 
 ### Events
@@ -224,6 +223,8 @@ MUST be emitted when a GovernorRoot creates a new proposal.
       type: uint
     - name: callsHash
       type: bytes32
+    - name: data
+      type: bytes
 ```
 
 # Rationale
