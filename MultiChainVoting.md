@@ -28,7 +28,7 @@ The historic voting power of a user is divided into *epochs*. An epoch is a long
 
 <img src="./assets/Epochs.png" alt="drawing" width="60%"/>
 
-When a user transfers EpochVoter tokens, the contract will record the *minimum balance held by the user during the epoch*. This ensures that users cannot double-vote: the voting power for an epoch excludes tokens that have moved.
+When a user transfers EpochVoter tokens, the contract will record the *minimum voting power held by the user during the epoch*. This ensures that users cannot double-vote: the voting power for an epoch excludes tokens that have moved.
 
 Below is the specification for the EpochVoter contract, and extensions to the GovernorBranch and the GovernorRoot contracts.
 
