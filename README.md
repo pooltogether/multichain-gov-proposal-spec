@@ -10,7 +10,7 @@ category (*only required for Standards Track): ERC
 created: 2022-05-16
 ---
 
-# Multi-Chain Governance
+# EIP-?: Multi-Chain Governance
 
 # Abstract
 
