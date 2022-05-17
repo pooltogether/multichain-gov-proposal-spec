@@ -349,7 +349,7 @@ Double-voting is the risk that a user can vote more than once. In a naive system
 
 <img src="./assets/Timestamps.png" alt="drawing" width="30%"/>
 
-This problem is mitigated by using *epochs*. Time is evenly divided into epochs. An epoch is long enough to ensure that they overlap across chains, no matter what the minor relative clock differences are.
+This problem can be mitigated by using *epochs*. Time is evenly divided into epochs. An epoch is long enough to ensure that they overlap across chains, no matter what the minor relative clock differences are.
 
 <img src="./assets/Epochs.png" alt="drawing" width="60%"/>
 
@@ -380,11 +380,33 @@ There is a reference implementation [on Github](https://github.com/pooltogether/
 
 # Security Considerations
 
-The single biggest security risk when messaging across chains is the messaging bridge. Ethereum L2s such as zk-rollups and optimisic rollups inherit the base layer security, but sidechains such as Polygon do not. This specification leaves the transport layer undefined, so that protocols select the messaging system that they are comfortable with.
+The single biggest security risk is the cross-chain transport layer. Ethereum L2s such as zk-rollups and optimisic rollups inherit the base layer security, but sidechains such as Polygon do not.
 
-### Worst-Case Scenario: Bridge Compromised
+## Worst-Case Scenario: Bridge Compromised
 
-Let's assume one of the bridges has been compromised. **The attacker, through the bridge, could create and vote arbitrarily on proposals on the Governor Root**. How can we mitigate this?
+Let's assume one of the bridges has been compromised. What is our exposure?
+
+### GovernorBranch: queueProposal
+
+The attacker could queue arbitrary code on the Governor Branch on that bridge. The scope of damage will be anything under the branch's control.
+
+Mitigations:
+
+- Allow branches to set queuing delays. This will give people time to exit before the proposal takes effect.
+- Add a "guardian" to branches that can cancel proposals.
+
+### GovernorRoot: createProposal.
+
+The attacker could create proposals without holding tokens.
+
+Mitigations:
+
+- Only allow proposal creation from certain bridges.
+
+### GovernorRoot: addVotes
+
+The attacker could control the branch's entire vote.
+
+Mitigations:
 
 - Limit branch voting power to tokens held on that chain. If there is a token bridge on the chain that the root lives on, it's possible to automatically limit the voting power based on held votes.
-- Reject proposal creation from certain bridges.
