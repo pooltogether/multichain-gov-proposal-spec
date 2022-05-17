@@ -230,7 +230,7 @@ MUST be emitted when a GovernorBranch executes a proposal
 
 ## GovernorRoot
 
-The GovernorRoot contract creates proposals and queues proposals that have passed.
+The GovernorRoot contract allows branches to creates proposals and aggregate votes.  When a proposal passes, the Governor Root can queue proposals on branches that require execution.
 
 ### Methods
 
@@ -339,6 +339,65 @@ MUST be emitted when votes are added
       type: uint256
     - name: from
       type: address
+```
+
+## EpochVoter
+
+The EpochVoter contract tracks a users voting power. Both Governor Branch and Governor Root use the Epoch Voter, so the Epoch Voter must be present everywhere those contracts are.
+
+Voting power is tracked as the *minimum balance held during an epoch*. An epoch is a large unit of time.  See below for details.
+
+Epoch Voter contracts are synchronized across chains by ensuring their start timestamp and epoch durations match.  The epoch duration must be more than long enough to cover clock differences between chains.
+
+### Methods
+
+**currentEpoch**
+
+MUST return the current epoch
+
+```yaml
+- name: currentEpoch
+  type: function
+  stateMutability: constant
+  outputs:
+    - name: epoch
+      type: uint
+```
+
+**currentVotes**
+
+MUST return the voting power of a user at the current epoch. This power can change until the epoch has passed.
+
+```yaml
+- name: currentVotes
+  type: function
+  stateMutability: constant
+  inputs:
+    - name: account
+      type: address
+  outputs:
+    - name: votes
+      type: uint
+```
+
+**votesAtEpoch**
+
+MUST return the voting power of a user at a particular epoch.
+
+MUST revert if the epoch has not passed.
+
+```yaml
+- name: votesAtEpoch
+  type: function
+  stateMutability: constant
+  inputs:
+    - name: account
+      type: address
+    - name: epoch
+      type: uint
+  outputs:
+    - name: votes
+      type: uint
 ```
 
 # Rationale
