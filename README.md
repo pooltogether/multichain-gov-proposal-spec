@@ -360,7 +360,19 @@ By tracking voting power by the minimum balance for a given epoch, we can ensure
 One of the major goals of this specification is to keep *as much data off-chain as possible*. This has two benefits:
 
 1. Less data is written to the chain, making the system cheaper to run.
-2. Fewer cross-chain messages need to be sent, because the proposal data can supplied by the caller and verified.
+2. Minimizes the number of cross-chain messages. Proposal data can supplied by the caller and verified using the proposal hash.
+
+### Minimal Cross-Chain Messages
+
+Let's count the number of messages:
+
+1. Create proposal message from a branch -> root. (1)
+2. Add votes message from each branch -> root. (number of branches)
+3. Queue proposal message from root -> branch only for *branches that require execution*. (1 - number of branches)
+
+Worst case scenario we'll have `1 + 2*(number of branches)` number of cross-chain messages.
+
+<img src="./assets/CrossChainMessages.png" alt="drawing" width="100%"/>
 
 ## Governance is Modular
 
@@ -370,7 +382,7 @@ It's expected that there will be more chains or L2s in the future. Having a root
 
 # Backwards Compatibility
 
-This system is compatible with the original Compound Governor Timelock contract, which allows certain protocols to swap out the old Governor Alpha for this spec.
+This system is can be easily adapted to support the original Compound Governor Timelock contract, which protocols to swap out the old Governor Alpha for this spec.
 
 # Reference Implementation
 
