@@ -347,7 +347,7 @@ MUST be emitted when votes are added
 
 Double-voting is the risk that a user can vote more than once. In a naive system which measures a users balance at a certain timestamp, it's possible for a user to bridge their tokens and have the same balance for the same timestamp across two chains:
 
-<img src="./assets/Timestamps.png" alt="drawing" width="30%"/>
+<img src="./assets/Timestamps.png" alt="drawing" width="35%"/>
 
 This problem can be mitigated by using *epochs*. Time is evenly divided into epochs. An epoch is long enough to ensure that they overlap across chains, no matter what the minor relative clock differences are.
 
@@ -364,15 +364,13 @@ One of the major goals of this specification is to keep *as much data off-chain 
 
 ## Governance is Modular
 
-It's expected that there will be more chains or L2s in the future. 
+It's expected that there will be more chains or L2s in the future. Having a root and branches is a simple topology that makes adding new chains easy.
+
+<img src="./assets/GovTopology.png" alt="drawing" width="100%"/>
 
 # Backwards Compatibility
 
 This system is compatible with the original Compound Governor Timelock contract, which allows certain protocols to swap out the old Governor Alpha for this spec.
-
-# Test Cases
-
-TBD
 
 # Reference Implementation
 
@@ -393,7 +391,7 @@ The attacker could queue arbitrary code on the Governor Branch on that bridge. T
 Mitigations:
 
 - Allow branches to set queuing delays. This will give people time to exit before the proposal takes effect.
-- Add a "guardian" to branches that can cancel proposals.
+- Add a "guardian" to branches that can cancel proposals. However, this could introduce censorship issues unless it's carefully managed.
 
 ### GovernorRoot: createProposal.
 
@@ -405,8 +403,8 @@ Mitigations:
 
 ### GovernorRoot: addVotes
 
-The attacker could control the branch's entire vote.
+The attacker could control the branch's entire vote, including inflating the vote counts giving them majority power.
 
 Mitigations:
 
-- Limit branch voting power to tokens held on that chain. If there is a token bridge on the chain that the root lives on, it's possible to automatically limit the voting power based on held votes.
+- Limit branch voting power. Voting could be limited by how many tokens are locked in the bridge.
